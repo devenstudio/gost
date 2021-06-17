@@ -303,18 +303,17 @@ func (c *Chain) selectRouteFor(addr string) (route *Chain, err error) {
 		}
 
 		if node.Bypass.Contains(addr) {
+			if node.Client.Transporter.Multiplex() {
+				node.DialOptions = append(node.DialOptions,
+					ChainDialOption(route),
+				)
+				route = newRoute() // cutoff the chain for multiplex node.
+			}
+
+			route.AddNode(node)
+			nl = append(nl, node)
 			break
 		}
-
-		if node.Client.Transporter.Multiplex() {
-			node.DialOptions = append(node.DialOptions,
-				ChainDialOption(route),
-			)
-			route = newRoute() // cutoff the chain for multiplex node.
-		}
-
-		route.AddNode(node)
-		nl = append(nl, node)
 	}
 
 	route.route = nl
