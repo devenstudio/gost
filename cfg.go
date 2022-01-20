@@ -4,15 +4,11 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"net"
 	"net/url"
 	"os"
 	"strings"
-
-	"github.com/ginuerzh/gost"
 )
 
 var (
@@ -21,22 +17,6 @@ var (
 
 type baseConfig struct {
 	route
-	Routes []route
-	Debug  bool
-}
-
-func parseBaseConfig(s string) (*baseConfig, error) {
-	file, err := os.Open(s)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	if err := json.NewDecoder(file).Decode(baseCfg); err != nil {
-		return nil, err
-	}
-
-	return baseCfg, nil
 }
 
 var (
@@ -81,23 +61,6 @@ func loadCA(caFile string) (cp *x509.CertPool, err error) {
 	return
 }
 
-func parseKCPConfig(configFile string) (*gost.KCPConfig, error) {
-	if configFile == "" {
-		return nil, nil
-	}
-	file, err := os.Open(configFile)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	config := &gost.KCPConfig{}
-	if err = json.NewDecoder(file).Decode(config); err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
 func parseUsers(authFile string) (users []*url.Userinfo, err error) {
 	if authFile == "" {
 		return
@@ -126,7 +89,7 @@ func parseUsers(authFile string) (users []*url.Userinfo, err error) {
 	return
 }
 
-func parseAuthenticator(s string) (gost.Authenticator, error) {
+func parseAuthenticator(s string) (Authenticator, error) {
 	if s == "" {
 		return nil, nil
 	}
@@ -136,10 +99,10 @@ func parseAuthenticator(s string) (gost.Authenticator, error) {
 	}
 	defer f.Close()
 
-	au := gost.NewLocalAuthenticator(nil)
+	au := NewLocalAuthenticator(nil)
 	au.Reload(f)
 
-	go gost.PeriodReload(au, s)
+	go PeriodReload(au, s)
 
 	return au, nil
 }
@@ -183,11 +146,11 @@ func parseIP(s string, port string) (ips []string) {
 	return
 }
 
-func parseBypass(s string) *gost.Bypass {
+func parseBypass(s string) *Bypass {
 	if s == "" {
 		return nil
 	}
-	var matchers []gost.Matcher
+	var matchers []Matcher
 	var reversed bool
 	if strings.HasPrefix(s, "~") {
 		reversed = true
@@ -201,24 +164,24 @@ func parseBypass(s string) *gost.Bypass {
 			if s == "" {
 				continue
 			}
-			matchers = append(matchers, gost.NewMatcher(s))
+			matchers = append(matchers, NewMatcher(s))
 		}
-		return gost.NewBypass(reversed, matchers...)
+		return NewBypass(reversed, matchers...)
 	}
 	defer f.Close()
 
-	bp := gost.NewBypass(reversed)
+	bp := NewBypass(reversed)
 	bp.Reload(f)
-	go gost.PeriodReload(bp, s)
+	go PeriodReload(bp, s)
 
 	return bp
 }
 
-func parseResolver(cfg string) gost.Resolver {
+func parseResolver(cfg string) Resolver {
 	if cfg == "" {
 		return nil
 	}
-	var nss []gost.NameServer
+	var nss []NameServer
 
 	f, err := os.Open(cfg)
 	if err != nil {
@@ -236,7 +199,7 @@ func parseResolver(cfg string) gost.Resolver {
 				if u.Scheme == "https-chain" {
 					p = u.Scheme
 				}
-				ns := gost.NameServer{
+				ns := NameServer{
 					Addr:     s,
 					Protocol: p,
 				}
@@ -246,88 +209,42 @@ func parseResolver(cfg string) gost.Resolver {
 
 			ss := strings.Split(s, "/")
 			if len(ss) == 1 {
-				ns := gost.NameServer{
+				ns := NameServer{
 					Addr: ss[0],
 				}
 				nss = append(nss, ns)
 			}
 			if len(ss) == 2 {
-				ns := gost.NameServer{
+				ns := NameServer{
 					Addr:     ss[0],
 					Protocol: ss[1],
 				}
 				nss = append(nss, ns)
 			}
 		}
-		return gost.NewResolver(0, nss...)
+		return NewResolver(0, nss...)
 	}
 	defer f.Close()
 
-	resolver := gost.NewResolver(0)
+	resolver := NewResolver(0)
 	resolver.Reload(f)
 
-	go gost.PeriodReload(resolver, cfg)
+	go PeriodReload(resolver, cfg)
 
 	return resolver
 }
 
-func parseHosts(s string) *gost.Hosts {
+func parseHosts(s string) *Hosts {
 	f, err := os.Open(s)
 	if err != nil {
 		return nil
 	}
 	defer f.Close()
 
-	hosts := gost.NewHosts()
+	hosts := NewHosts()
 	hosts.Reload(f)
 
-	go gost.PeriodReload(hosts, s)
+	go PeriodReload(hosts, s)
 
 	return hosts
-}
-
-func parseIPRoutes(s string) (routes []gost.IPRoute) {
-	if s == "" {
-		return
-	}
-
-	file, err := os.Open(s)
-	if err != nil {
-		ss := strings.Split(s, ",")
-		for _, s := range ss {
-			if _, inet, _ := net.ParseCIDR(strings.TrimSpace(s)); inet != nil {
-				routes = append(routes, gost.IPRoute{Dest: inet})
-			}
-		}
-		return
-	}
-
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.Replace(scanner.Text(), "\t", " ", -1)
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		var route gost.IPRoute
-		var ss []string
-		for _, s := range strings.Split(line, " ") {
-			if s = strings.TrimSpace(s); s != "" {
-				ss = append(ss, s)
-			}
-		}
-		if len(ss) > 0 && ss[0] != "" {
-			_, route.Dest, _ = net.ParseCIDR(strings.TrimSpace(ss[0]))
-			if route.Dest == nil {
-				continue
-			}
-		}
-		if len(ss) > 1 && ss[1] != "" {
-			route.Gateway = net.ParseIP(ss[1])
-		}
-		routes = append(routes, route)
-	}
-	return routes
 }

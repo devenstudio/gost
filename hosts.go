@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"bufio"
@@ -6,8 +6,6 @@ import (
 	"net"
 	"sync"
 	"time"
-
-	"github.com/go-log/log"
 )
 
 // Host is a static mapping from hostname to IP.
@@ -74,9 +72,6 @@ func (h *Hosts) Lookup(host string) (ip net.IP) {
 				break
 			}
 		}
-	}
-	if ip != nil && Debug {
-		log.Logf("[hosts] hit: %s %s", host, ip.String())
 	}
 	return
 }

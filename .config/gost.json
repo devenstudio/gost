@@ -1,6 +1,5 @@
 {
     "Retries": 1,
-    "Debug": false,
     "ServeNodes": [
         ":12345"
     ],

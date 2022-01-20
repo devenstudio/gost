@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"bufio"
@@ -291,9 +291,6 @@ func (r *resolver) Resolve(host string) (ips []net.IP, err error) {
 			continue
 		}
 
-		if Debug {
-			log.Logf("[resolver] %s via %s %v", host, ns.String(), ips)
-		}
 		if len(ips) > 0 {
 			break
 		}
@@ -625,10 +622,6 @@ func (rc *resolverCache) loadCache(key resolverCacheKey) *dns.Msg {
 		}
 	}
 
-	if Debug {
-		log.Logf("[resolver] cache hit %s", key)
-	}
-
 	return item.mr.Copy()
 }
 
@@ -642,9 +635,6 @@ func (rc *resolverCache) storeCache(key resolverCacheKey, mr *dns.Msg, ttl time.
 		ts:  time.Now().Unix(),
 		ttl: ttl,
 	})
-	if Debug {
-		log.Logf("[resolver] cache store %s", key)
-	}
 }
 
 // Exchanger is an interface for DNS synchronous query.

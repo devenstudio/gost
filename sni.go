@@ -1,6 +1,6 @@
 // SNI proxy based on https://github.com/bradfitz/tcpproxy
 
-package gost
+package main
 
 import (
 	"bufio"
@@ -219,12 +219,9 @@ func (c *sniClientConn) obfuscate(p []byte) ([]byte, error) {
 	}
 
 	if p[0] == dissector.Handshake {
-		b, host, err := readClientHelloRecord(bytes.NewReader(p), c.host, true)
+		b, _, err := readClientHelloRecord(bytes.NewReader(p), c.host, true)
 		if err != nil {
 			return nil, err
-		}
-		if Debug {
-			log.Logf("[sni] obfuscate: %s -> %s", c.addr, host)
 		}
 		c.obfuscated = true
 		return b, nil
@@ -255,9 +252,6 @@ func (c *sniClientConn) obfuscate(p []byte) ([]byte, error) {
 		if strings.HasPrefix(s, "Host") {
 			s = strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(s, "Host:"), "\r\n"))
 			host := encodeServerName(s)
-			if Debug {
-				log.Logf("[sni] obfuscate: %s -> %s", s, c.host)
-			}
 			buf.WriteString("Host: " + c.host + "\r\n")
 			buf.WriteString("Gost-Target: " + host + "\r\n")
 			// drain the remain bytes.

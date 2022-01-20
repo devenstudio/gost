@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"errors"

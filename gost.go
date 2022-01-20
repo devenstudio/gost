@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"crypto/rand"
@@ -21,9 +21,6 @@ import (
 
 // Version is the gost version.
 const Version = "2.11.1"
-
-// Debug is a flag that enables the debug log.
-var Debug bool
 
 var (
 	tinyBufferSize   = 512

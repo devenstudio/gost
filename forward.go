@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"context"
@@ -703,9 +703,6 @@ func (l *udpRemoteForwardListener) listenLoop() {
 
 				select {
 				case uc.rChan <- b[:n]:
-					if Debug {
-						log.Logf("[rudp] %s >>> %s : length %d", raddr, l.Addr(), n)
-					}
 				default:
 					log.Logf("[rudp] %s -> %s : recv queue is full", raddr, l.Addr(), cap(uc.rChan))
 				}

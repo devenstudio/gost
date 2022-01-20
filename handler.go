@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"bufio"
@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/ginuerzh/gosocks4"
 	"github.com/ginuerzh/gosocks5"
 	"github.com/go-log/log"
 )
@@ -41,7 +40,6 @@ type HandlerOptions struct {
 	Host          string
 	IPs           []string
 	TCPMode       bool
-	IPRoutes      []IPRoute
 }
 
 // HandlerOption allows a common way to set handler options.
@@ -204,13 +202,6 @@ func TCPModeHandlerOption(b bool) HandlerOption {
 	}
 }
 
-// IPRoutesHandlerOption sets the IP routes for tun tunnel.
-func IPRoutesHandlerOption(routes ...IPRoute) HandlerOption {
-	return func(opts *HandlerOptions) {
-		opts.IPRoutes = routes
-	}
-}
-
 type autoHandler struct {
 	options *HandlerOptions
 }
@@ -243,14 +234,6 @@ func (h *autoHandler) Handle(conn net.Conn) {
 	cc := &bufferdConn{Conn: conn, br: br}
 	var handler Handler
 	switch b[0] {
-	case gosocks4.Ver4:
-		// SOCKS4(a) does not suppport authentication method,
-		// so we ignore it when credentials are specified for security reason.
-		if len(h.options.Users) > 0 {
-			cc.Close()
-			return
-		}
-		handler = &socks4Handler{options: h.options}
 	case gosocks5.Ver5: // socks5
 		handler = &socks5Handler{options: h.options}
 	default: // http

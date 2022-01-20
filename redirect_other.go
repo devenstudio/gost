@@ -1,6 +1,6 @@
 // +build !linux
 
-package gost
+package main
 
 import (
 	"errors"

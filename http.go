@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"bufio"
@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"strconv"
@@ -82,19 +81,9 @@ func (c *httpConnector) ConnectContext(ctx context.Context, conn net.Conn, netwo
 		return nil, err
 	}
 
-	if Debug {
-		dump, _ := httputil.DumpRequest(req, false)
-		log.Log(string(dump))
-	}
-
 	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
 	if err != nil {
 		return nil, err
-	}
-
-	if Debug {
-		dump, _ := httputil.DumpResponse(resp, false)
-		log.Log(string(dump))
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -161,11 +150,6 @@ func (h *httpHandler) handleRequest(conn net.Conn, req *http.Request) {
 	log.Logf("[http] %s%s -> %s -> %s",
 		u, conn.RemoteAddr(), h.options.Node.String(), host)
 
-	if Debug {
-		dump, _ := httputil.DumpRequest(req, false)
-		log.Logf("[http] %s -> %s\n%s", conn.RemoteAddr(), conn.LocalAddr(), string(dump))
-	}
-
 	req.Header.Del("Gost-Target")
 
 	resp := &http.Response{
@@ -180,11 +164,6 @@ func (h *httpHandler) handleRequest(conn net.Conn, req *http.Request) {
 			conn.RemoteAddr(), conn.LocalAddr(), host)
 		resp.StatusCode = http.StatusForbidden
 
-		if Debug {
-			dump, _ := httputil.DumpResponse(resp, false)
-			log.Logf("[http] %s <- %s\n%s", conn.RemoteAddr(), conn.LocalAddr(), string(dump))
-		}
-
 		resp.Write(conn)
 		return
 	}
@@ -194,10 +173,6 @@ func (h *httpHandler) handleRequest(conn net.Conn, req *http.Request) {
 
 		log.Logf("[http] %s - %s bypass %s",
 			conn.RemoteAddr(), conn.LocalAddr(), host)
-		if Debug {
-			dump, _ := httputil.DumpResponse(resp, false)
-			log.Logf("[http] %s <- %s\n%s", conn.RemoteAddr(), conn.LocalAddr(), string(dump))
-		}
 
 		resp.Write(conn)
 		return
@@ -209,13 +184,6 @@ func (h *httpHandler) handleRequest(conn net.Conn, req *http.Request) {
 
 	if req.Method == "PRI" || (req.Method != http.MethodConnect && req.URL.Scheme != "http") {
 		resp.StatusCode = http.StatusBadRequest
-
-		if Debug {
-			dump, _ := httputil.DumpResponse(resp, false)
-			log.Logf("[http] %s <- %s\n%s",
-				conn.RemoteAddr(), conn.LocalAddr(), string(dump))
-		}
-
 		resp.Write(conn)
 		return
 	}
@@ -274,23 +242,13 @@ func (h *httpHandler) handleRequest(conn net.Conn, req *http.Request) {
 
 	if err != nil {
 		resp.StatusCode = http.StatusServiceUnavailable
-
-		if Debug {
-			dump, _ := httputil.DumpResponse(resp, false)
-			log.Logf("[http] %s <- %s\n%s", conn.RemoteAddr(), conn.LocalAddr(), string(dump))
-		}
-
 		resp.Write(conn)
 		return
 	}
 	defer cc.Close()
 
 	if req.Method == http.MethodConnect {
-		b := []byte("HTTP/1.1 200 Connection established\r\n" +
-			"Proxy-Agent: gost/" + Version + "\r\n\r\n")
-		if Debug {
-			log.Logf("[http] %s <- %s\n%s", conn.RemoteAddr(), conn.LocalAddr(), string(b))
-		}
+		b := []byte("HTTP/1.1 200 Connection established\r\n" + "Proxy-Agent: gost/" + Version + "\r\n\r\n")
 		conn.Write(b)
 	} else {
 		req.Header.Del("Proxy-Connection")
@@ -308,10 +266,6 @@ func (h *httpHandler) handleRequest(conn net.Conn, req *http.Request) {
 
 func (h *httpHandler) authenticate(conn net.Conn, req *http.Request, resp *http.Response) (ok bool) {
 	u, p, _ := basicProxyAuth(req.Header.Get("Proxy-Authorization"))
-	if Debug && (u != "" || p != "") {
-		log.Logf("[http] %s -> %s : Authorization '%s' '%s'",
-			conn.RemoteAddr(), conn.LocalAddr(), u, p)
-	}
 	if h.options.Authenticator == nil || h.options.Authenticator.Authenticate(u, p) {
 		return true
 	}
@@ -378,12 +332,6 @@ func (h *httpHandler) authenticate(conn net.Conn, req *http.Request, resp *http.
 		}
 	}
 
-	if Debug {
-		dump, _ := httputil.DumpResponse(resp, false)
-		log.Logf("[http] %s <- %s\n%s",
-			conn.RemoteAddr(), conn.LocalAddr(), string(dump))
-	}
-
 	resp.Write(conn)
 	return
 }
@@ -435,12 +383,6 @@ func (h *httpHandler) forwardRequest(conn net.Conn, req *http.Request, route *Ch
 			if err != nil {
 				errc <- err
 				return
-			}
-
-			if Debug {
-				dump, _ := httputil.DumpRequest(req, false)
-				log.Logf("[http] %s -> %s\n%s",
-					conn.RemoteAddr(), conn.LocalAddr(), string(dump))
 			}
 		}
 	}()

@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"context"
@@ -112,17 +112,13 @@ func HostDialOption(host string) DialOption {
 
 // HandshakeOptions describes the options for handshake.
 type HandshakeOptions struct {
-	Addr       string
-	Host       string
-	User       *url.Userinfo
-	Timeout    time.Duration
-	Interval   time.Duration
-	Retry      int
-	TLSConfig  *tls.Config
-	WSOptions  *WSOptions
-	KCPConfig  *KCPConfig
-	QUICConfig *QUICConfig
-	SSHConfig  *SSHConfig
+	Addr      string
+	Host      string
+	User      *url.Userinfo
+	Timeout   time.Duration
+	Interval  time.Duration
+	Retry     int
+	TLSConfig *tls.Config
 }
 
 // HandshakeOption allows a common way to set HandshakeOptions.
@@ -174,34 +170,6 @@ func RetryHandshakeOption(retry int) HandshakeOption {
 func TLSConfigHandshakeOption(config *tls.Config) HandshakeOption {
 	return func(opts *HandshakeOptions) {
 		opts.TLSConfig = config
-	}
-}
-
-// WSOptionsHandshakeOption specifies the websocket options used by websocket handshake
-func WSOptionsHandshakeOption(options *WSOptions) HandshakeOption {
-	return func(opts *HandshakeOptions) {
-		opts.WSOptions = options
-	}
-}
-
-// KCPConfigHandshakeOption specifies the KCP config used by KCP handshake
-func KCPConfigHandshakeOption(config *KCPConfig) HandshakeOption {
-	return func(opts *HandshakeOptions) {
-		opts.KCPConfig = config
-	}
-}
-
-// QUICConfigHandshakeOption specifies the QUIC config used by QUIC handshake
-func QUICConfigHandshakeOption(config *QUICConfig) HandshakeOption {
-	return func(opts *HandshakeOptions) {
-		opts.QUICConfig = config
-	}
-}
-
-// SSHConfigHandshakeOption specifies the ssh config used by SSH client handshake.
-func SSHConfigHandshakeOption(config *SSHConfig) HandshakeOption {
-	return func(opts *HandshakeOptions) {
-		opts.SSHConfig = config
 	}
 }
 

@@ -1,4 +1,4 @@
-package gost
+package main
 
 import (
 	"errors"
@@ -124,9 +124,6 @@ func (l *udpListener) listenLoop() {
 
 		select {
 		case conn.rChan <- b[:n]:
-			if Debug {
-				log.Logf("[udp] %s >>> %s : length %d", raddr, l.Addr(), n)
-			}
 		default:
 			log.Logf("[udp] %s -> %s : recv queue is full (%d)", raddr, l.Addr(), cap(conn.rChan))
 		}
@@ -268,10 +265,6 @@ func (c *udpServerConn) WriteTo(b []byte, addr net.Addr) (n int, err error) {
 	n, err = c.conn.WriteTo(b, addr)
 
 	if n > 0 {
-		if Debug {
-			log.Logf("[udp] %s <<< %s : length %d", addr, c.LocalAddr(), n)
-		}
-
 		select {
 		case c.nopChan <- n:
 		default:
